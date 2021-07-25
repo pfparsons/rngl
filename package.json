@@ -30,6 +30,7 @@
     "@fortawesome/free-solid-svg-icons": "^5.15.3",
     "d3": "^5.16.0",
     "mermaid": "^8.11.0",
+    "npm": "^7.20.1",
     "sirv-cli": "^1.0.0",
     "svelte-fa": "^2.2.1"
   }

@@ -5,35 +5,16 @@ import { MESSAGE, ProcessState , Request, LoadBufferRequest, Response, LoadBuffe
 declare var self: DedicatedWorkerGlobalScope;
 const logger = new EventLog();
 
-class Loader {
+    let msgSeq: number = 0;
+    let buffer: ArrayBuffer;
+    let uint8Buffer: Uint8Array;
 
-    private processId: number = -1;
-    private msgSeq: number = 0;
-    private buffer: ArrayBuffer;
-    private uint8Buffer: Uint8Array;
+    let bufferPosition: number = 0;
+    let length: number = 0;
+    let state = ProcessState.PENDING;
 
-    private bufferPosition: number = 0;
-    private readonly length: number;
-    private state = ProcessState.PENDING;
-    private readonly PAUSE_WAIT_MS = 300
 
-    constructor(processId: number, length: number) {
-        this.processId = processId;
-        this.length = length;
-    }
-
-    private sleep(durationMs: number) {
-        return new Promise<void>(resolve => setTimeout(resolve, durationMs));
-    }
- 
-    private async pause() {
-        while (this.state == ProcessState.PAUSED) {
-            await this.sleep(this.PAUSE_WAIT_MS);
-            console.log(`worker ${this.processId} paused...`);
-        }
-    }
-
-    private reportLoadProgres(){
+    function reportLoadProgres(): void {
         let progMsg: LoadBufferUpdate = {
             messageId: ++this.msgSeq,
             processId: this.processId,
@@ -45,7 +26,7 @@ class Loader {
         self.postMessage(progMsg);
     }
 
-    transferBuffer() {
+    function transferBuffer(): void {
         let bufferMsg: BufferTransfer = {
             messageId: ++this.msgSeq,
             processId: this.processId,
@@ -64,23 +45,18 @@ class Loader {
 
     private async readAll(reader: ReadableStreamDefaultReader<Uint8Array>) {
         while (this.state != ProcessState.DONE && this.state != ProcessState.ERROR) {
-
-        reader.read()
-        .then(this.read)
+        
+        reader.read().then(this.read)
 
 
             console.log(`worker ${this.processId} reading...`)
 
 
-            if (result.done || this.bufferPosition == this.length) {
-                this.reportLoadProgres();
-                reader.releaseLock();
-                return;
-            }
 
-            return this.readNextChunk(reader);
 
         }
+        reader.releaseLock();
+
 
     }
 
@@ -91,7 +67,9 @@ class Loader {
                     this.bufferPosition += result.value.byteLength;
                 }
             }
-
+            if (result.done || this.bufferPosition == this.length) {
+                this.reportLoadProgres();
+            }
     }
 
 
